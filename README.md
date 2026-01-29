@@ -1,6 +1,6 @@
-# KLCHB Bot — Трекер активности книжного клуба
+# KL4B Bot — Трекер активности книжного клуба
 
-Telegram-бот для автоматического отслеживания участия в книжном клубе КЛЧБ (Кыргызский Литературный Клуб Библии).
+Telegram-бот для автоматического отслеживания участия в книжном клубе KL4B (Клуб Любителей чтения Библии).
 
 ## Что делает бот
 
@@ -35,7 +35,6 @@ kl4b/
 │       └── WeeklyReport.gs     # Генерация отчётов
 ├── docs/
 │   └── plans/                  # Документация и планы
-├── klchb_new.ipynb             # Старый notebook (для справки)
 └── CLAUDE.md                   # Контекст для Claude Code
 ```
 
@@ -57,7 +56,7 @@ https://docs.google.com/spreadsheets/d/{SHEET_ID}/edit
 ### 3. Настроить Google Apps Script
 
 1. Открыть [script.google.com](https://script.google.com)
-2. Создать новый проект
+2. Создать новый проект "KL4B Bot"
 3. Скопировать все `.gs` файлы из `klchb_bot/gas/`
 4. В Project Settings включить "Show appsscript.json manifest file" и скопировать содержимое `appsscript.json`
 
