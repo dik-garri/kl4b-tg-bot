@@ -22,17 +22,16 @@ Telegram-бот для автоматического отслеживания �
 
 ```
 kl4b/
-├── klchb_bot/
-│   └── gas/                    # Google Apps Script код
-│       ├── appsscript.json     # Манифест GAS
-│       ├── Code.gs             # Точки входа (doPost, doGet)
-│       ├── SheetHelpers.gs     # Работа с таблицами
-│       ├── Logging.gs          # Логирование
-│       ├── TelegramApi.gs      # Telegram Bot API
-│       ├── Members.gs          # CRUD для участников
-│       ├── Messages.gs         # Работа с сообщениями
-│       ├── Webhook.gs          # Обработка webhook
-│       └── WeeklyReport.gs     # Генерация отчётов
+├── gas/                        # Google Apps Script код
+│   ├── appsscript.json         # Манифест GAS
+│   ├── Code.gs                 # Точки входа (doPost, doGet)
+│   ├── SheetHelpers.gs         # Работа с таблицами
+│   ├── Logging.gs              # Логирование
+│   ├── TelegramApi.gs          # Telegram Bot API
+│   ├── Members.gs              # CRUD для участников
+│   ├── Messages.gs             # Работа с сообщениями
+│   ├── Webhook.gs              # Обработка webhook
+│   └── WeeklyReport.gs         # Генерация отчётов
 ├── docs/
 │   └── plans/                  # Документация и планы
 └── CLAUDE.md                   # Контекст для Claude Code
@@ -57,7 +56,7 @@ https://docs.google.com/spreadsheets/d/{SHEET_ID}/edit
 
 1. Открыть [script.google.com](https://script.google.com)
 2. Создать новый проект "KL4B Bot"
-3. Скопировать все `.gs` файлы из `klchb_bot/gas/`
+3. Скопировать все `.gs` файлы из `gas/`
 4. В Project Settings включить "Show appsscript.json manifest file" и скопировать содержимое `appsscript.json`
 
 ### 4. Установить Script Properties

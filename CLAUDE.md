@@ -10,18 +10,16 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ```
 kl4b/
-├── klchb_bot/              # Telegram bot (Google Apps Script)
-│   └── gas/
-│       ├── Code.gs         # Entry points (doPost, doGet, setup)
-│       ├── SheetHelpers.gs # Google Sheets utilities
-│       ├── Logging.gs      # Logging to sheets
-│       ├── TelegramApi.gs  # Telegram Bot API
-│       ├── Members.gs      # Member CRUD
-│       ├── Messages.gs     # Message storage, week calculations
-│       ├── Webhook.gs      # Process incoming messages
-│       ├── WeeklyReport.gs # Weekly processing, PNG generation
-│       └── appsscript.json # GAS manifest
-├── klchb_new.ipynb         # Legacy notebook (reference only)
+├── gas/                    # Google Apps Script код
+│   ├── Code.gs             # Entry points (doPost, doGet, setup)
+│   ├── SheetHelpers.gs     # Google Sheets utilities
+│   ├── Logging.gs          # Logging to sheets
+│   ├── TelegramApi.gs      # Telegram Bot API
+│   ├── Members.gs          # Member CRUD
+│   ├── Messages.gs         # Message storage, week calculations
+│   ├── Webhook.gs          # Process incoming messages
+│   ├── WeeklyReport.gs     # Weekly processing, PNG generation
+│   └── appsscript.json     # GAS manifest
 └── docs/plans/             # Design documents
 ```
 
@@ -52,7 +50,7 @@ SHEET_ID, BOT_TOKEN, GROUP_CHAT_ID, TARGET_THREAD_ID, REPORT_THREAD_ID
 
 ### Deployment
 
-See `klchb_bot/README.md` for full setup instructions.
+See main `README.md` for full setup instructions.
 
 ## Business Rules
 
