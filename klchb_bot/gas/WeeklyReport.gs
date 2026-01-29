@@ -105,3 +105,113 @@ function buildReportData_(results) {
 
   return [...active, ...expelled];
 }
+
+/**
+ * Write report data to report_template sheet
+ */
+function writeReportToSheet_(reportData) {
+  const sheet = getReportSheet_();
+
+  // Clear previous data (keep header)
+  const lastRow = sheet.getLastRow();
+  if (lastRow > 1) {
+    sheet.getRange(2, 1, lastRow - 1, 3).clearContent();
+  }
+
+  // Write new data
+  const rows = reportData.map(r => [
+    r.first_name,
+    r.active_days,
+    r.strikes,
+  ]);
+
+  if (rows.length > 0) {
+    sheet.getRange(2, 1, rows.length, 3).setValues(rows);
+  }
+
+  // Apply formatting for expelled (strikes = 3)
+  for (let i = 0; i < rows.length; i++) {
+    const rowNum = i + 2;
+    if (reportData[i].strikes >= 3) {
+      sheet.getRange(rowNum, 1, 1, 3).setBackground("#ffcccc");
+    } else {
+      sheet.getRange(rowNum, 1, 1, 3).setBackground(null);
+    }
+  }
+
+  return rows.length;
+}
+
+/**
+ * Export report sheet as PNG
+ */
+function exportReportAsPng_(rowCount) {
+  const props = PropertiesService.getScriptProperties();
+  const sheetId = props.getProperty("SHEET_ID");
+  const ss = SpreadsheetApp.openById(sheetId);
+  const sheet = ss.getSheetByName(REPORT_SHEET);
+  const gid = sheet.getSheetId();
+
+  // Calculate range to export (header + data)
+  const range = `A1:C${rowCount + 1}`;
+
+  const exportUrl = `https://docs.google.com/spreadsheets/d/${sheetId}/export?` +
+    `format=png&gid=${gid}&range=${range}`;
+
+  const response = UrlFetchApp.fetch(exportUrl, {
+    headers: { Authorization: "Bearer " + ScriptApp.getOAuthToken() },
+    muteHttpExceptions: true,
+  });
+
+  if (response.getResponseCode() !== 200) {
+    throw new Error("Failed to export PNG: " + response.getContentText());
+  }
+
+  return response.getBlob().setName("weekly_report.png");
+}
+
+/**
+ * Send weekly report to Telegram
+ */
+function sendWeeklyReport_() {
+  const weekLabel = getWeekLabel_();
+
+  // Process activity
+  const results = processWeeklyActivity_();
+
+  if (results.length === 0) {
+    logWarn_("weeklyReport", "No members to report", null, null, null);
+    return;
+  }
+
+  // Build and write report
+  const reportData = buildReportData_(results);
+  const rowCount = writeReportToSheet_(reportData);
+
+  // Export as PNG
+  const pngBlob = exportReportAsPng_(rowCount);
+
+  // Send to Telegram
+  const chatId = getGroupChatId_();
+  const threadId = getReportThreadId_();
+  const caption = `📊 Отчёт за неделю ${weekLabel}\n\nАктивных: ${reportData.filter(r => r.status === "active").length}`;
+
+  sendPhoto_(chatId, pngBlob, caption, threadId);
+
+  logInfo_("weeklyReport", "Report sent", null, null, {
+    week: weekLabel,
+    totalMembers: reportData.length,
+  });
+}
+
+/**
+ * Entry point for weekly trigger
+ */
+function runWeeklyReport() {
+  try {
+    sendWeeklyReport_();
+  } catch (err) {
+    logError_("runWeeklyReport", err.message, null, null, { stack: err.stack });
+    throw err; // Re-throw so trigger shows as failed
+  }
+}
