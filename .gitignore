@@ -2,6 +2,10 @@
 *.csv
 *.json
 result.json
+*.ipynb
+
+# Allow GAS manifest
+!klchb_bot/gas/appsscript.json
 
 # Output
 *.png
