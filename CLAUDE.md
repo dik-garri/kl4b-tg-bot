@@ -4,59 +4,69 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-Book club activity tracker (КЛЧБ - Кыргызский Литературный Клуб Библиі) for managing member engagement in a Telegram Bible reading discussion group. Tracks participation in the "Мысли по прочитанному" (Thoughts on Reading) thread and manages membership status based on activity levels.
+**KL4B** (Клуб Любителей чтения Библии) — трекер активности для Telegram-группы книжного клуба. Отслеживает участие в топике "Мысли по прочитанному" и управляет статусом участников на основе активности.
 
-## Running the Project
+## Project Structure
 
-This is a Jupyter notebook project. Run cells sequentially in `klchb_new.ipynb`:
-- Designed for Google Colab (paths default to `/content/`)
-- For local execution, update all path constants in Cell 5 to local paths
+```
+kl4b/
+├── klchb_bot/              # Telegram bot (Google Apps Script)
+│   └── gas/
+│       ├── Code.gs         # Entry points (doPost, doGet, setup)
+│       ├── SheetHelpers.gs # Google Sheets utilities
+│       ├── Logging.gs      # Logging to sheets
+│       ├── TelegramApi.gs  # Telegram Bot API
+│       ├── Members.gs      # Member CRUD
+│       ├── Messages.gs     # Message storage, week calculations
+│       ├── Webhook.gs      # Process incoming messages
+│       ├── WeeklyReport.gs # Weekly processing, PNG generation
+│       └── appsscript.json # GAS manifest
+├── klchb_new.ipynb         # Legacy notebook (reference only)
+└── docs/plans/             # Design documents
+```
 
-## Data Flow
+## KL4B Bot (Primary)
 
-1. **Input**: `result.json` - Telegram group export (via Telegram Desktop: Export Chat History → JSON)
-2. **State tracking**: `klchb_state.csv` - current member status, strikes, consecutive good weeks
-3. **History**: `klchb_history.csv` - full week-by-week tracking
-4. **Output**: `klchb_summary_this_week.csv` and `.png` - weekly report for posting to Telegram
+Автоматический Telegram-бот на Google Apps Script.
 
-## Weekly Run Checklist
+### How It Works
 
-Before each run, update in Cell 5:
-1. `WEEK_LABEL` - current week identifier (e.g., "2026-Jan-4")
-2. `new_members` - first-time participants (protected from strikes)
-3. `frozen_members` - members with temporary freeze
-4. `returned_members` - previously expelled members returning
-5. Copy the updated `club_members` list printed at the end for next week
+1. **Webhook** получает сообщения из топика "Мысли по прочитанному"
+2. Сохраняет в Google Sheets (messages, members)
+3. **Weekly trigger** (воскресенье 21:00) обрабатывает активность
+4. Генерирует PNG-отчёт и постит в топик "Объявления"
+
+### Key Files
+
+| File | Purpose |
+|------|---------|
+| Code.gs | `doPost()`, `doGet()`, `setupSheets()`, `testConfig()`, `integrationTest()` |
+| WeeklyReport.gs | `runWeeklyReport()` — entry point for weekly trigger |
+| Webhook.gs | `processUpdate_()` — processes incoming Telegram messages |
+
+### Script Properties Required
+
+```
+SHEET_ID, BOT_TOKEN, GROUP_CHAT_ID, TARGET_THREAD_ID, REPORT_THREAD_ID
+```
+
+### Deployment
+
+See `klchb_bot/README.md` for full setup instructions.
 
 ## Business Rules
 
-- Members need **≥3 active days** per week to avoid a strike
-- **3 strikes** = expulsion
-- **2 consecutive good weeks** removes 1 strike (resets good week counter)
-- New members cannot receive strikes in their first week
-- Frozen members don't receive strikes
-- Messages only count if `reply_to_message_id == 3` (the discussion thread)
+- **≥3 активных дней** в неделю — хорошая неделя
+- **<3 дней** — страйк
+- **3 страйка** = исключение
+- **2 хороших недели подряд** снимают 1 страйк
+- Замороженные участники не получают страйков (frozen_until в Google Sheets)
 
-## Notebook Structure
+## Legacy Notebook
 
-| Cell | Purpose |
-|------|---------|
-| 1 | Imports (pandas, matplotlib, json, datetime) |
-| 2 | Telegram JSON parsing helpers |
-| 3 | State management and rule application logic |
-| 4 | PNG table rendering for Telegram posting |
-| 5 | **Main execution** - paths, member lists, weekly pipeline |
-| 7 | Year-end statistics (optional, standalone) |
+`klchb_new.ipynb` — старый ручной процесс (для справки):
+- Требовал ручного экспорта чата в JSON
+- Ручного запуска notebook
+- Ручной публикации PNG
 
-## Key Functions
-
-- `get_weekly_activity()` - parses Telegram JSON, returns active days per member
-- `update_state_for_week()` - applies strike/expulsion rules, returns new state
-- `plot_aligned_activity_list()` - renders summary as monospace PNG
-
-## Output Columns
-
-CSV/PNG use Russian headers:
-- `Автор` - member name
-- `Активных дней` - days with ≥1 message
-- `Страйки` - current strike count
+Заменён автоматическим ботом.
