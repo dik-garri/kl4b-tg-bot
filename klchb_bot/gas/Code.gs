@@ -67,3 +67,41 @@ function testConfig() {
     Logger.log(`${key}: ${val ? "SET (" + val.slice(0, 10) + "...)" : "MISSING"}`);
   }
 }
+
+/**
+ * Integration test: simulate message and check state
+ */
+function integrationTest() {
+  // 1. Setup sheets
+  setupSheets();
+  Logger.log("✓ Sheets initialized");
+
+  // 2. Simulate a message
+  const testUpdate = {
+    update_id: 1,
+    message: {
+      message_id: 1001,
+      message_thread_id: getTargetThreadId_(),
+      from: {
+        id: 888888,
+        username: "integration_test",
+        first_name: "Integration Test",
+      },
+      text: "Test message",
+    }
+  };
+  processUpdate_(testUpdate);
+  Logger.log("✓ Test message processed");
+
+  // 3. Check member was created
+  const member = findMemberByUserId_(888888);
+  if (!member) throw new Error("Member not created");
+  Logger.log("✓ Member created: " + JSON.stringify(member.data));
+
+  // 4. Check message was saved
+  const sheet = getMessagesSheet_();
+  const lastRow = sheet.getLastRow();
+  Logger.log("✓ Messages sheet has " + (lastRow - 1) + " messages");
+
+  Logger.log("\n=== Integration test passed ===");
+}
