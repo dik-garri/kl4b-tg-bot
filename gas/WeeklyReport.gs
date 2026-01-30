@@ -192,12 +192,13 @@ function exportReportAsPng_(rowCount) {
 }
 
 /**
- * Send weekly report to Telegram
+ * Process weekly report: calculate stats, update sheets, optionally send to Telegram
  */
 function sendWeeklyReport_() {
   const weekLabel = getWeekLabel_();
+  const collectionOnly = isCollectionOnly_();
 
-  // Process activity
+  // Process activity (always - updates strikes, trophies, history)
   const results = processWeeklyActivity_();
 
   if (results.length === 0) {
@@ -205,19 +206,29 @@ function sendWeeklyReport_() {
     return;
   }
 
-  // Build and write report
+  // Build and write report to sheet (always - for manual review)
   const reportData = buildReportData_(results);
   const rowCount = writeReportToSheet_(reportData);
 
-  // Export as PNG
-  const pngBlob = exportReportAsPng_(rowCount);
-
-  // Send to Telegram
-  const chatId = getGroupChatId_();
-  const threadId = getReportThreadId_();
-
   const activeCount = reportData.filter(r => r.status === "active").length;
   const trophyCount = results.filter(r => r.weekly_status === "trophy").length;
+
+  // Skip Telegram notification in collection-only mode
+  if (collectionOnly) {
+    logInfo_("weeklyReport", "Processed (COLLECTION_ONLY - no Telegram)", null, null, {
+      week: weekLabel,
+      totalMembers: reportData.length,
+      activeCount: activeCount,
+      trophies: trophyCount,
+    });
+    return;
+  }
+
+  // Export as PNG and send to Telegram
+  const pngBlob = exportReportAsPng_(rowCount);
+
+  const chatId = getGroupChatId_();
+  const threadId = getReportThreadId_();
 
   let caption = `📊 Отчёт за неделю ${weekLabel}\n\nАктивных: ${activeCount}`;
   if (trophyCount > 0) {
@@ -246,12 +257,6 @@ function isCollectionOnly_() {
  * Entry point for weekly trigger
  */
 function runWeeklyReport() {
-  // Check if collection-only mode is enabled
-  if (isCollectionOnly_()) {
-    logInfo_("runWeeklyReport", "Skipped - COLLECTION_ONLY mode", null, null, null);
-    return;
-  }
-
   try {
     sendWeeklyReport_();
   } catch (err) {
