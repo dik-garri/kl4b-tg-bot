@@ -46,8 +46,9 @@ function processWeeklyActivity_() {
         newGoodWeeks = 0;
       }
     } else if (activeDays >= 3) {
-      // Good week (3-5 days)
+      // Good week (3-5 days) but no trophy streak
       newGoodWeeks += 1;
+      newTrophies = 0; // Reset trophies - didn't maintain 6/6
       weeklyStatus = "ok";
 
       // Remove strike after 2 consecutive good weeks
@@ -59,7 +60,7 @@ function processWeeklyActivity_() {
       // Bad week - add strike, reset trophies
       newStrikes += 1;
       newGoodWeeks = 0;
-      newTrophies = 0; // Reset trophies on strike
+      newTrophies = 0; // Reset trophies
       weeklyStatus = "strike";
 
       if (newStrikes >= 3) {
