@@ -78,7 +78,7 @@ function getMembersSheet_() {
   const sheet = getOrCreateSheet_(MEMBERS_SHEET);
   ensureHeader_(sheet, [
     "user_id", "username", "first_name", "status",
-    "strikes", "good_weeks", "frozen_until", "first_seen", "last_seen"
+    "strikes", "good_weeks", "trophies", "max_trophies", "frozen_until", "first_seen", "last_seen"
   ]);
   return sheet;
 }
@@ -100,7 +100,7 @@ function getHistorySheet_() {
  */
 function getReportSheet_() {
   const sheet = getOrCreateSheet_(REPORT_SHEET);
-  ensureHeader_(sheet, ["Имя", "Дней", "Страйки"]);
+  ensureHeader_(sheet, ["Имя", "Дней", "Страйки", "Трофеи"]);
   return sheet;
 }
 

@@ -28,13 +28,25 @@ function processWeeklyActivity_() {
     let newStatus = member.status;
     let newStrikes = member.strikes;
     let newGoodWeeks = member.good_weeks;
+    let newTrophies = member.trophies;
     let weeklyStatus = "ok";
 
     if (isFrozen) {
       weeklyStatus = "frozen";
-      // No changes to strikes/good_weeks
+      // No changes to strikes/good_weeks/trophies
+    } else if (activeDays >= 6) {
+      // Perfect week - trophy!
+      newGoodWeeks += 1;
+      newTrophies += 1;
+      weeklyStatus = "trophy";
+
+      // Remove strike after 2 consecutive good weeks
+      if (newGoodWeeks >= 2 && newStrikes > 0) {
+        newStrikes -= 1;
+        newGoodWeeks = 0;
+      }
     } else if (activeDays >= 3) {
-      // Good week
+      // Good week (3-5 days)
       newGoodWeeks += 1;
       weeklyStatus = "ok";
 
@@ -44,9 +56,10 @@ function processWeeklyActivity_() {
         newGoodWeeks = 0;
       }
     } else {
-      // Bad week - add strike
+      // Bad week - add strike, reset trophies
       newStrikes += 1;
       newGoodWeeks = 0;
+      newTrophies = 0; // Reset trophies on strike
       weeklyStatus = "strike";
 
       if (newStrikes >= 3) {
@@ -57,7 +70,7 @@ function processWeeklyActivity_() {
     }
 
     // Update member in sheet
-    updateMemberState_(member.user_id, newStatus, newStrikes, newGoodWeeks);
+    updateMemberState_(member.user_id, newStatus, newStrikes, newGoodWeeks, newTrophies);
 
     // Add to history
     historySheet.appendRow([
@@ -75,6 +88,7 @@ function processWeeklyActivity_() {
       first_name: member.first_name,
       active_days: activeDays,
       strikes: newStrikes,
+      trophies: newTrophies,
       status: newStatus,
       weekly_status: weeklyStatus,
     });
@@ -84,6 +98,7 @@ function processWeeklyActivity_() {
     week: weekLabel,
     processed: results.length,
     expelled: results.filter(r => r.weekly_status === "expelled").length,
+    trophies: results.filter(r => r.weekly_status === "trophy").length,
   });
 
   return results;
@@ -115,7 +130,7 @@ function writeReportToSheet_(reportData) {
   // Clear previous data (keep header)
   const lastRow = sheet.getLastRow();
   if (lastRow > 1) {
-    sheet.getRange(2, 1, lastRow - 1, 3).clearContent();
+    sheet.getRange(2, 1, lastRow - 1, 4).clearContent();
   }
 
   // Write new data
@@ -123,19 +138,24 @@ function writeReportToSheet_(reportData) {
     r.first_name,
     r.active_days,
     r.strikes,
+    r.trophies > 0 ? "🏆".repeat(r.trophies) : "",
   ]);
 
   if (rows.length > 0) {
-    sheet.getRange(2, 1, rows.length, 3).setValues(rows);
+    sheet.getRange(2, 1, rows.length, 4).setValues(rows);
   }
 
-  // Apply formatting for expelled (strikes = 3)
+  // Apply formatting
   for (let i = 0; i < rows.length; i++) {
     const rowNum = i + 2;
     if (reportData[i].strikes >= 3) {
-      sheet.getRange(rowNum, 1, 1, 3).setBackground("#ffcccc");
+      // Expelled - red background
+      sheet.getRange(rowNum, 1, 1, 4).setBackground("#ffcccc");
+    } else if (reportData[i].trophies > 0) {
+      // Has trophies - gold background
+      sheet.getRange(rowNum, 1, 1, 4).setBackground("#fff9c4");
     } else {
-      sheet.getRange(rowNum, 1, 1, 3).setBackground(null);
+      sheet.getRange(rowNum, 1, 1, 4).setBackground(null);
     }
   }
 
@@ -152,8 +172,8 @@ function exportReportAsPng_(rowCount) {
   const sheet = ss.getSheetByName(REPORT_SHEET);
   const gid = sheet.getSheetId();
 
-  // Calculate range to export (header + data)
-  const range = `A1:C${rowCount + 1}`;
+  // Calculate range to export (header + data, 4 columns)
+  const range = `A1:D${rowCount + 1}`;
 
   const exportUrl = `https://docs.google.com/spreadsheets/d/${sheetId}/export?` +
     `format=png&gid=${gid}&range=${range}`;
@@ -194,13 +214,21 @@ function sendWeeklyReport_() {
   // Send to Telegram
   const chatId = getGroupChatId_();
   const threadId = getReportThreadId_();
-  const caption = `📊 Отчёт за неделю ${weekLabel}\n\nАктивных: ${reportData.filter(r => r.status === "active").length}`;
+
+  const activeCount = reportData.filter(r => r.status === "active").length;
+  const trophyCount = results.filter(r => r.weekly_status === "trophy").length;
+
+  let caption = `📊 Отчёт за неделю ${weekLabel}\n\nАктивных: ${activeCount}`;
+  if (trophyCount > 0) {
+    caption += `\n🏆 Трофеев на этой неделе: ${trophyCount}`;
+  }
 
   sendPhoto_(chatId, pngBlob, caption, threadId);
 
   logInfo_("weeklyReport", "Report sent", null, null, {
     week: weekLabel,
     totalMembers: reportData.length,
+    trophies: trophyCount,
   });
 }
 

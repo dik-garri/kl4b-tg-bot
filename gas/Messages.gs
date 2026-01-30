@@ -15,8 +15,28 @@ function saveMessage_(userId, username, firstName, messageId) {
 }
 
 /**
+ * Get "activity day" for a timestamp.
+ * Day boundary is 4:00 AM GMT+6 (Bishkek time).
+ * Message at 3:00 AM counts as previous day.
+ */
+function getActivityDay_(timestamp) {
+  const date = timestamp instanceof Date ? timestamp : new Date(timestamp);
+
+  // Convert to GMT+6 (Bishkek), then subtract 4 hours
+  // This makes 4:00 AM the day boundary
+  const GMT6_OFFSET_MS = 6 * 60 * 60 * 1000;
+  const DAY_START_OFFSET_MS = 4 * 60 * 60 * 1000;
+
+  const localTime = new Date(date.getTime() + GMT6_OFFSET_MS);
+  const adjustedTime = new Date(localTime.getTime() - DAY_START_OFFSET_MS);
+
+  return Utilities.formatDate(adjustedTime, "UTC", "yyyy-MM-dd");
+}
+
+/**
  * Get active days count for a user within date range
  * Returns number of unique days with messages
+ * Uses 4:00 AM GMT+6 as day boundary
  */
 function getActiveDaysForUser_(userId, startDate, endDate) {
   const sheet = getMessagesSheet_();
@@ -42,7 +62,8 @@ function getActiveDaysForUser_(userId, startDate, endDate) {
     if (isNaN(msgDate.getTime())) continue;
     if (msgDate < startDate || msgDate > endDate) continue;
 
-    const dayStr = toDateStr_(msgDate);
+    // Use activity day (4:00 AM boundary)
+    const dayStr = getActivityDay_(msgDate);
     uniqueDays.add(dayStr);
   }
 
