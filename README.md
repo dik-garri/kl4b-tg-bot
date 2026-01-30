@@ -100,11 +100,44 @@ Triggers → Add Trigger:
 - Day: Sunday
 - Time: 21:00
 
-## Получение ID топиков
+## Получение ID
 
-Переслать сообщение из топика боту [@userinfobot](https://t.me/userinfobot) или использовать `getUpdates`:
+### GROUP_CHAT_ID
+
+**Способ A — через @userinfobot:**
+1. Добавь [@userinfobot](https://t.me/userinfobot) в группу
+2. Бот напишет ID группы (отрицательное число, например `-1001234567890`)
+3. Удали бота из группы
+
+**Способ B — через getUpdates:**
+1. Добавь своего бота в группу
+2. Напиши любое сообщение в группу
+3. Открой в браузере:
+   ```
+   https://api.telegram.org/bot{TOKEN}/getUpdates
+   ```
+4. Найди `"chat": {"id": -1001234567890, ...}` — это GROUP_CHAT_ID
+
+### TARGET_THREAD_ID и REPORT_THREAD_ID
+
+Это ID топиков (тредов) внутри группы.
+
+**Способ A — через getUpdates:**
+1. Напиши сообщение в нужный топик
+2. Открой `getUpdates` (см. выше)
+3. Найди `"message_thread_id": 123` — это ID топика
+
+**Способ B — через ссылку на сообщение:**
+1. Нажми правой кнопкой на сообщение в топике → "Копировать ссылку"
+2. Ссылка будет вида: `https://t.me/c/1234567890/456/789`
+   - `456` — это thread_id (ID топика)
+
+### Пример значений
+
 ```
-https://api.telegram.org/bot{TOKEN}/getUpdates
+GROUP_CHAT_ID = -1001234567890
+TARGET_THREAD_ID = 123    (топик "Мысли по прочитанному")
+REPORT_THREAD_ID = 456    (топик "Объявления")
 ```
 
 ## Заморозки
