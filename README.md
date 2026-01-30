@@ -70,6 +70,7 @@ Project Settings → Script Properties:
 | GROUP_CHAT_ID | ID группы (отрицательное число) |
 | TARGET_THREAD_ID | ID топика "Мысли по прочитанному" |
 | REPORT_THREAD_ID | ID топика "Объявления" |
+| COLLECTION_ONLY | `true` — только сбор данных, без отчётов (опционально) |
 
 ### 5. Инициализировать таблицы
 

@@ -234,9 +234,24 @@ function sendWeeklyReport_() {
 }
 
 /**
+ * Check if bot is in collection-only mode
+ */
+function isCollectionOnly_() {
+  const props = PropertiesService.getScriptProperties();
+  const value = props.getProperty("COLLECTION_ONLY");
+  return value === "true" || value === "1";
+}
+
+/**
  * Entry point for weekly trigger
  */
 function runWeeklyReport() {
+  // Check if collection-only mode is enabled
+  if (isCollectionOnly_()) {
+    logInfo_("runWeeklyReport", "Skipped - COLLECTION_ONLY mode", null, null, null);
+    return;
+  }
+
   try {
     sendWeeklyReport_();
   } catch (err) {
