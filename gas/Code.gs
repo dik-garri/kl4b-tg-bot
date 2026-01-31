@@ -12,6 +12,8 @@
 
 /**
  * Handle incoming webhook from Telegram
+ * Note: Don't return ContentService — it can cause pending updates to accumulate
+ * See: LESSONS_LEARNED.md #4
  */
 function doPost(e) {
   try {
@@ -21,18 +23,15 @@ function doPost(e) {
 
     if (!body) {
       logWarn_("doPost", "Empty body", null, null, null);
-      return ContentService.createTextOutput("OK");
+      return;
     }
 
     const update = JSON.parse(body);
     processUpdate_(update);
-
-    return ContentService.createTextOutput("OK");
   } catch (err) {
     logError_("doPost", err.message, null, null, { stack: err.stack });
-    // Always return OK to Telegram to prevent retries
-    return ContentService.createTextOutput("OK");
   }
+  // Don't return anything — Telegram handles it better
 }
 
 /**

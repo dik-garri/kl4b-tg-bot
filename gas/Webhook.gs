@@ -2,6 +2,11 @@
  * Process incoming Telegram update
  */
 function processUpdate_(update) {
+  if (!update) {
+    logWarn_("webhook", "Empty update received", null, null, null);
+    return;
+  }
+
   const message = update.message;
   if (!message) {
     logInfo_("webhook", "No message in update", null, null, { update_id: update.update_id });
