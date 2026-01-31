@@ -34,7 +34,8 @@ kl4b/
 │   └── WeeklyReport.gs         # Генерация отчётов
 ├── docs/
 │   └── plans/                  # Документация и планы
-└── CLAUDE.md                   # Контекст для Claude Code
+├── CLAUDE.md                   # Контекст для Claude Code
+└── TODOs.md                    # Будущие улучшения
 ```
 
 ## Быстрый старт

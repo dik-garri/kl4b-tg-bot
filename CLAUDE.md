@@ -2,6 +2,17 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+## Rules
+
+1. **Всегда обновлять документацию** — при изменении кода или бизнес-логики обновлять:
+   - `README.md` — пользовательская документация
+   - `CLAUDE.md` — контекст для Claude Code
+   - `TODOs.md` — если появились новые идеи/задачи
+
+2. **Учитывать LESSONS_LEARNED** — перед изменением GAS кода проверить `telegram-mini-app-poc/skills/LESSONS_LEARNED.md`
+
+3. **Коммиты после каждого логического изменения**
+
 ## Project Overview
 
 **KL4B** (Клуб Любителей чтения Библии) — трекер активности для Telegram-группы книжного клуба. Отслеживает участие в топике "Мысли по прочитанному" и управляет статусом участников на основе активности.
@@ -20,7 +31,10 @@ kl4b/
 │   ├── Webhook.gs          # Process incoming messages
 │   ├── WeeklyReport.gs     # Weekly processing, PNG generation
 │   └── appsscript.json     # GAS manifest
-└── docs/plans/             # Design documents
+├── docs/plans/             # Design documents
+├── README.md               # Пользовательская документация
+├── CLAUDE.md               # Контекст для Claude Code
+└── TODOs.md                # Будущие улучшения
 ```
 
 ## KL4B Bot (Primary)
