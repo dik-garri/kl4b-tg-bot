@@ -71,32 +71,36 @@ function getActiveDaysForUser_(userId, startDate, endDate) {
 }
 
 /**
- * Get week boundaries (Monday 00:00 UTC to Sunday 23:59:59 UTC)
- * For current week if no date specified
+ * Get week boundaries for the last complete week (Monday 00:00 UTC to Sunday 23:59:59 UTC)
+ * "Last complete" = most recent Sunday (including today if Sunday) and its Monday
+ * - Run on Sunday: reports on the week ending today (Mon–Sun)
+ * - Run on any other day: reports on the previous week ending last Sunday
  */
 function getWeekBoundaries_(referenceDate) {
   const d = referenceDate ? new Date(referenceDate) : new Date();
 
-  // Get Monday of this week
-  const day = d.getUTCDay();
-  const diff = day === 0 ? -6 : 1 - day; // Monday = 1, Sunday = 0
+  // Find the most recent Sunday (including today if it's Sunday)
+  const day = d.getUTCDay(); // 0=Sun, 1=Mon, ..., 6=Sat
+  const daysBack = day === 0 ? 0 : day;
 
-  const monday = new Date(d);
-  monday.setUTCDate(d.getUTCDate() + diff);
-  monday.setUTCHours(0, 0, 0, 0);
-
-  const sunday = new Date(monday);
-  sunday.setUTCDate(monday.getUTCDate() + 6);
+  const sunday = new Date(d);
+  sunday.setUTCDate(d.getUTCDate() - daysBack);
   sunday.setUTCHours(23, 59, 59, 999);
+
+  const monday = new Date(sunday);
+  monday.setUTCDate(sunday.getUTCDate() - 6);
+  monday.setUTCHours(0, 0, 0, 0);
 
   return { start: monday, end: sunday };
 }
 
 /**
- * Get week label in format "2026-W05"
+ * Get week label in format "2026-W05" for the last complete week
+ * Uses the same logic as getWeekBoundaries_ to stay consistent
  */
 function getWeekLabel_(date) {
-  const d = date ? new Date(date) : new Date();
+  const bounds = getWeekBoundaries_(date);
+  const d = bounds.start; // Monday of the target week
   const year = d.getUTCFullYear();
 
   // ISO week number calculation

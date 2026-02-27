@@ -7,7 +7,7 @@ function findMemberByUserId_(userId) {
   const lastRow = sheet.getLastRow();
   if (lastRow <= 1) return null;
 
-  const data = sheet.getRange(2, 1, lastRow - 1, 11).getValues();
+  const data = sheet.getRange(2, 1, lastRow - 1, 12).getValues();
   for (let i = 0; i < data.length; i++) {
     if (String(data[i][0]) === String(userId)) {
       return {
@@ -24,6 +24,7 @@ function findMemberByUserId_(userId) {
           frozen_until: data[i][8],
           first_seen: data[i][9],
           last_seen: data[i][10],
+          report_name: data[i][11] || data[i][2] || "",
         }
       };
     }
@@ -51,6 +52,7 @@ function createMember_(userId, username, firstName) {
     "", // frozen_until
     dateStr, // first_seen
     dateStr, // last_seen
+    firstName || "", // report_name (editable in sheet)
   ]);
 
   logInfo_("createMember", `New member: ${firstName}`, userId, username, null);
@@ -93,7 +95,7 @@ function getActiveMembers_() {
   const lastRow = sheet.getLastRow();
   if (lastRow <= 1) return [];
 
-  const data = sheet.getRange(2, 1, lastRow - 1, 11).getValues();
+  const data = sheet.getRange(2, 1, lastRow - 1, 12).getValues();
   const members = [];
 
   for (const row of data) {
@@ -110,6 +112,7 @@ function getActiveMembers_() {
         frozen_until: row[8],
         first_seen: row[9],
         last_seen: row[10],
+        report_name: row[11] || row[2] || "",
       });
     }
   }

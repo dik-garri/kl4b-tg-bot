@@ -1,10 +1,36 @@
 /**
+ * Parse week label "2026-W08" into the Sunday of that week (for use as referenceDate)
+ */
+function parseWeekLabel_(label) {
+  const match = label.match(/^(\d{4})-W(\d{2})$/);
+  if (!match) throw new Error("Invalid week label: " + label + ". Expected format: 2026-W08");
+
+  const year = parseInt(match[1]);
+  const week = parseInt(match[2]);
+
+  // Jan 4 is always in ISO week 1
+  const jan4 = new Date(Date.UTC(year, 0, 4));
+  const jan4Day = jan4.getUTCDay() || 7; // Convert Sunday=0 to 7
+
+  // Monday of week 1
+  const mondayW1 = new Date(jan4);
+  mondayW1.setUTCDate(jan4.getUTCDate() - (jan4Day - 1));
+
+  // Sunday of the target week
+  const sunday = new Date(mondayW1);
+  sunday.setUTCDate(mondayW1.getUTCDate() + (week - 1) * 7 + 6);
+
+  return sunday;
+}
+
+/**
  * Process weekly activity and update member states
  * Returns array of results for report
+ * @param {Date} [referenceDate] - optional date to determine which week to process
  */
-function processWeeklyActivity_() {
-  const weekBounds = getWeekBoundaries_();
-  const weekLabel = getWeekLabel_();
+function processWeeklyActivity_(referenceDate) {
+  const weekBounds = getWeekBoundaries_(referenceDate);
+  const weekLabel = getWeekLabel_(referenceDate);
   const members = getActiveMembers_();
   const results = [];
   const historySheet = getHistorySheet_();
@@ -86,7 +112,7 @@ function processWeeklyActivity_() {
     // Collect for report
     results.push({
       user_id: member.user_id,
-      first_name: member.first_name,
+      report_name: member.report_name,
       active_days: activeDays,
       strikes: newStrikes,
       trophies: newTrophies,
@@ -112,12 +138,12 @@ function buildReportData_(results) {
   // Active members sorted by name
   const active = results
     .filter(r => r.status === "active")
-    .sort((a, b) => a.first_name.localeCompare(b.first_name, "ru"));
+    .sort((a, b) => a.report_name.localeCompare(b.report_name, "ru"));
 
   // Newly expelled this week
   const expelled = results
     .filter(r => r.weekly_status === "expelled")
-    .sort((a, b) => a.first_name.localeCompare(b.first_name, "ru"));
+    .sort((a, b) => a.report_name.localeCompare(b.report_name, "ru"));
 
   return [...active, ...expelled];
 }
@@ -136,7 +162,7 @@ function writeReportToSheet_(reportData) {
 
   // Write new data
   const rows = reportData.map(r => [
-    r.first_name,
+    r.report_name,
     r.active_days,
     r.strikes,
     r.trophies > 0 ? "🏆".repeat(r.trophies) : "",
@@ -193,13 +219,14 @@ function exportReportAsPng_(rowCount) {
 
 /**
  * Process weekly report: calculate stats, update sheets, optionally send to Telegram
+ * @param {Date} [referenceDate] - optional date to determine which week to process
  */
-function sendWeeklyReport_() {
-  const weekLabel = getWeekLabel_();
+function sendWeeklyReport_(referenceDate) {
+  const weekLabel = getWeekLabel_(referenceDate);
   const collectionOnly = isCollectionOnly_();
 
   // Process activity (always - updates strikes, trophies, history)
-  const results = processWeeklyActivity_();
+  const results = processWeeklyActivity_(referenceDate);
 
   if (results.length === 0) {
     logWarn_("weeklyReport", "No members to report", null, null, null);
@@ -254,13 +281,26 @@ function isCollectionOnly_() {
 }
 
 /**
- * Entry point for weekly trigger
+ * Entry point for weekly trigger or manual run
+ * @param {string} [weekLabel] - optional week in format "2026-W08". If omitted, uses last complete week.
+ *
+ * Usage:
+ *   runWeeklyReport()            // last complete week (default)
+ *   runWeeklyReport("2026-W08")  // specific week
  */
-function runWeeklyReport() {
+function runWeeklyReport(weekLabel) {
   try {
-    sendWeeklyReport_();
+    const referenceDate = weekLabel ? parseWeekLabel_(weekLabel) : undefined;
+    sendWeeklyReport_(referenceDate);
   } catch (err) {
     logError_("runWeeklyReport", err.message, null, null, { stack: err.stack });
     throw err; // Re-throw so trigger shows as failed
   }
+}
+
+/**
+ * Manual run for a specific week — edit the week label below and run this function
+ */
+function runWeeklyReportForWeek() {
+  runWeeklyReport("2026-W08");
 }

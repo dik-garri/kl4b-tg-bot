@@ -60,7 +60,7 @@ kl4b/
 
 **members** — участники:
 ```
-user_id, username, first_name, status, strikes, good_weeks, trophies, max_trophies, frozen_until, first_seen, last_seen
+user_id, username, first_name, status, strikes, good_weeks, trophies, max_trophies, frozen_until, first_seen, last_seen, report_name
 ```
 
 **messages** — все сообщения из целевого топика:
