@@ -21,11 +21,3 @@
   - Сейчас у всех report_name = first_name
   - Нужно вручную вписать полные имена
 
----
-
-## Инфраструктура
-
-- [ ] **Автоматический деплой при git push**
-  - clasp настроен, `clasp push` работает
-  - Рассмотреть CI/CD (GitHub Actions) для автоматического `clasp push` при push в main
-  - Новый деплой всё ещё нужно создавать вручную в GAS (Deploy → New deployment)
