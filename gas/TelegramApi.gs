@@ -86,6 +86,38 @@ function sendPlainMessage_(chatId, text) {
 }
 
 /**
+ * Send a document (file) with caption
+ */
+function sendDocument_(chatId, docBlob, caption, threadId) {
+  const token = getBotToken_();
+  const url = `https://api.telegram.org/bot${token}/sendDocument`;
+
+  const formData = {
+    chat_id: String(chatId),
+    document: docBlob,
+    caption: caption || "",
+  };
+  if (threadId) {
+    formData.message_thread_id = threadId;
+  }
+
+  const options = {
+    method: "post",
+    payload: formData,
+    muteHttpExceptions: true,
+  };
+
+  const response = UrlFetchApp.fetch(url, options);
+  const json = JSON.parse(response.getContentText());
+
+  if (!json.ok) {
+    throw new Error(`Telegram API error: ${json.description || "Unknown"}`);
+  }
+
+  return json.result;
+}
+
+/**
  * Send a photo with caption
  */
 function sendPhoto_(chatId, photoBlob, caption, threadId) {
@@ -93,7 +125,7 @@ function sendPhoto_(chatId, photoBlob, caption, threadId) {
   const url = `https://api.telegram.org/bot${token}/sendPhoto`;
 
   const formData = {
-    chat_id: chatId,
+    chat_id: String(chatId),
     photo: photoBlob,
     caption: caption || "",
   };

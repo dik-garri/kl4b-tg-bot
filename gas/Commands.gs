@@ -44,7 +44,11 @@ function handleReportCommand_(message, args) {
       return;
     }
 
-    sendMessage_(userId, report.reportText);
+    const caption = `📊 Отчёт за неделю ${report.weekLabel}\nАктивных: ${report.activeCount}` +
+      (report.trophyCount > 0 ? `\n🏆 Трофеев: ${report.trophyCount}` : "");
+
+    sendDocument_(userId, report.csvBlob, caption);
+    sendPlainMessage_(userId, "Таблица: " + report.sheetUrl);
 
     logInfo_("command", "/report executed", userId, message.from.username, {
       week: report.weekLabel,

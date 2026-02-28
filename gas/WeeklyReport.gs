@@ -210,31 +210,33 @@ function writeReportToSheet_(reportData) {
 }
 
 /**
- * Format report data as monospace text table
+ * Build CSV blob from report data
  */
-function formatReportText_(reportData, weekLabel) {
-  const nameWidth = Math.max(...reportData.map(r => r.report_name.length), 3);
-
-  let text = `📊 Отчёт за неделю ${weekLabel}\n\n`;
-  text += "<pre>\n";
-
-  for (const r of reportData) {
-    const name = r.report_name.padEnd(nameWidth);
-    const days = String(r.active_days).padStart(1);
-    const strikes = r.strikes > 0 ? " ⚠️" + r.strikes : "";
-    const trophies = r.trophies > 0 ? " " + "🏆".repeat(r.trophies) : "";
-    const expelled = r.status !== "active" ? " ❌" : "";
-    text += `${name} ${days}${strikes}${trophies}${expelled}\n`;
-  }
-
-  text += "</pre>";
-  return text;
+function buildReportCsv_(reportData, weekLabel) {
+  const header = "Имя,Дни,Страйки,Трофеи,Статус";
+  const rows = reportData.map(r =>
+    `${r.report_name},${r.active_days},${r.strikes},${r.trophies},${r.status}`
+  );
+  const csv = [header, ...rows].join("\n");
+  return Utilities.newBlob(csv, "text/csv", `report_${weekLabel}.csv`);
 }
 
 /**
- * Generate weekly report: process activity, update sheets, build text report
+ * Get URL to report_template sheet
+ */
+function getReportSheetUrl_() {
+  const props = PropertiesService.getScriptProperties();
+  const sheetId = props.getProperty("SHEET_ID");
+  const ss = SpreadsheetApp.openById(sheetId);
+  const sheet = ss.getSheetByName(REPORT_SHEET);
+  const gid = sheet.getSheetId();
+  return `https://docs.google.com/spreadsheets/d/${sheetId}/edit#gid=${gid}`;
+}
+
+/**
+ * Generate weekly report: process activity, update sheets, build CSV + sheet URL
  * @param {Date} [referenceDate] - optional date to determine which week to process
- * @returns {{ reportText: string, weekLabel: string, activeCount: number, trophyCount: number } | null}
+ * @returns {{ csvBlob: Blob, sheetUrl: string, weekLabel: string, activeCount: number, trophyCount: number } | null}
  */
 function generateWeeklyReport_(referenceDate) {
   // Lock to prevent concurrent execution (wait up to 30 seconds)
@@ -261,8 +263,9 @@ function generateWeeklyReport_(referenceDate) {
     const activeCount = reportData.filter(r => r.status === "active").length;
     const trophyCount = results.filter(r => r.weekly_status === "trophy").length;
 
-    // Build text report
-    const reportText = formatReportText_(reportData, weekLabel);
+    // Build CSV and get sheet URL
+    const csvBlob = buildReportCsv_(reportData, weekLabel);
+    const sheetUrl = getReportSheetUrl_();
 
     logInfo_("weeklyReport", "Report generated", null, null, {
       week: weekLabel,
@@ -271,7 +274,7 @@ function generateWeeklyReport_(referenceDate) {
       trophies: trophyCount,
     });
 
-    return { reportText, weekLabel, activeCount, trophyCount };
+    return { csvBlob, sheetUrl, weekLabel, activeCount, trophyCount };
   } finally {
     lock.releaseLock();
   }
@@ -300,7 +303,11 @@ function sendWeeklyReport_(referenceDate) {
   const chatId = getGroupChatId_();
   const threadId = getReportThreadId_();
 
-  sendMessage_(chatId, report.reportText, threadId);
+  const caption = `📊 Отчёт за неделю ${report.weekLabel}\nАктивных: ${report.activeCount}` +
+    (report.trophyCount > 0 ? `\n🏆 Трофеев: ${report.trophyCount}` : "");
+
+  sendDocument_(chatId, report.csvBlob, caption, threadId);
+  sendMessage_(chatId, "Таблица: " + report.sheetUrl, threadId);
 
   logInfo_("weeklyReport", "Report sent to announcements", null, null, {
     week: report.weekLabel,
