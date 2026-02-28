@@ -7,7 +7,7 @@ function findMemberByUserId_(userId) {
   const lastRow = sheet.getLastRow();
   if (lastRow <= 1) return null;
 
-  const data = sheet.getRange(2, 1, lastRow - 1, 12).getValues();
+  const data = sheet.getRange(2, 1, lastRow - 1, 13).getValues();
   for (let i = 0; i < data.length; i++) {
     if (String(data[i][0]) === String(userId)) {
       return {
@@ -25,6 +25,7 @@ function findMemberByUserId_(userId) {
           first_seen: data[i][9],
           last_seen: data[i][10],
           report_name: data[i][11] || data[i][2] || "",
+          role: data[i][12] || "member",
         }
       };
     }
@@ -53,6 +54,7 @@ function createMember_(userId, username, firstName) {
     dateStr, // first_seen
     dateStr, // last_seen
     firstName || "", // report_name (editable in sheet)
+    "member",       // role
   ]);
 
   logInfo_("createMember", `New member: ${firstName}`, userId, username, null);
@@ -95,7 +97,7 @@ function getActiveMembers_() {
   const lastRow = sheet.getLastRow();
   if (lastRow <= 1) return [];
 
-  const data = sheet.getRange(2, 1, lastRow - 1, 12).getValues();
+  const data = sheet.getRange(2, 1, lastRow - 1, 13).getValues();
   const members = [];
 
   for (const row of data) {
@@ -113,11 +115,20 @@ function getActiveMembers_() {
         first_seen: row[9],
         last_seen: row[10],
         report_name: row[11] || row[2] || "",
+        role: row[12] || "member",
       });
     }
   }
 
   return members;
+}
+
+/**
+ * Check if user has admin role
+ */
+function isAdmin_(userId) {
+  const member = findMemberByUserId_(userId);
+  return member ? member.data.role === "admin" : false;
 }
 
 /**

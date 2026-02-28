@@ -79,7 +79,7 @@ function getMembersSheet_() {
   ensureHeader_(sheet, [
     "user_id", "username", "first_name", "status",
     "strikes", "good_weeks", "trophies", "max_trophies", "frozen_until", "first_seen", "last_seen",
-    "report_name"
+    "report_name", "role"
   ]);
   return sheet;
 }

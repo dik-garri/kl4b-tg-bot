@@ -30,6 +30,7 @@ kl4b/
 │   ├── Messages.gs         # Message storage, week calculations
 │   ├── Webhook.gs          # Process incoming messages
 │   ├── WeeklyReport.gs     # Weekly processing, PNG generation
+│   ├── Commands.gs          # Bot command handlers (/report)
 │   └── appsscript.json     # GAS manifest
 ├── docs/plans/             # Design documents
 ├── README.md               # Пользовательская документация
@@ -55,12 +56,13 @@ kl4b/
 | Code.gs | `doPost()`, `doGet()`, `setupSheets()`, `testConfig()`, `integrationTest()` |
 | WeeklyReport.gs | `runWeeklyReport()` — entry point for weekly trigger |
 | Webhook.gs | `processUpdate_()` — processes incoming Telegram messages |
+| Commands.gs | `handleCommand_()` — routes bot commands, `handleReportCommand_()` |
 
 ### Google Sheets Structure
 
 **members** — участники:
 ```
-user_id, username, first_name, status, strikes, good_weeks, trophies, max_trophies, frozen_until, first_seen, last_seen, report_name
+user_id, username, first_name, status, strikes, good_weeks, trophies, max_trophies, frozen_until, first_seen, last_seen, report_name, role
 ```
 
 **messages** — все сообщения из целевого топика:
@@ -102,6 +104,12 @@ See main `README.md` for full setup instructions.
 
 ### Заморозка
 - Замороженные участники (frozen_until в Google Sheets) пропускают неделю без страйка
+
+### Роли и команды
+- Колонка `role` в members: `admin` или `member` (по умолчанию)
+- Команды бота обрабатываются из любого топика/чата
+- `/report [2026-W08]` — только для админов, генерирует отчёт и шлёт PNG в личку
+- Бот **не пишет** в групповые чаты в ответ на команды
 
 ### COLLECTION_ONLY режим
 - При `COLLECTION_ONLY=true` бот работает полностью, но без отправки в Telegram

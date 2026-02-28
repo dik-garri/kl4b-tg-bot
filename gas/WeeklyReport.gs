@@ -24,6 +24,20 @@ function parseWeekLabel_(label) {
 }
 
 /**
+ * Check if a week label already exists in history sheet
+ */
+function isWeekAlreadyProcessed_(historySheet, weekLabel) {
+  const lastRow = historySheet.getLastRow();
+  if (lastRow <= 1) return false;
+
+  const weeks = historySheet.getRange(2, 1, lastRow - 1, 1).getValues();
+  for (const row of weeks) {
+    if (row[0] === weekLabel) return true;
+  }
+  return false;
+}
+
+/**
  * Process weekly activity and update member states
  * Returns array of results for report
  * @param {Date} [referenceDate] - optional date to determine which week to process
@@ -31,9 +45,15 @@ function parseWeekLabel_(label) {
 function processWeeklyActivity_(referenceDate) {
   const weekBounds = getWeekBoundaries_(referenceDate);
   const weekLabel = getWeekLabel_(referenceDate);
+
+  // Idempotency: check if this week was already processed
+  const historySheet = getHistorySheet_();
+  if (isWeekAlreadyProcessed_(historySheet, weekLabel)) {
+    throw new Error("Неделя " + weekLabel + " уже обработана. Повторный запуск заблокирован.");
+  }
+
   const members = getActiveMembers_();
   const results = [];
-  const historySheet = getHistorySheet_();
 
   logInfo_("weeklyReport", "Processing started", null, null, {
     week: weekLabel,
@@ -190,84 +210,101 @@ function writeReportToSheet_(reportData) {
 }
 
 /**
- * Export report sheet as PNG
+ * Format report data as monospace text table
  */
-function exportReportAsPng_(rowCount) {
-  const props = PropertiesService.getScriptProperties();
-  const sheetId = props.getProperty("SHEET_ID");
-  const ss = SpreadsheetApp.openById(sheetId);
-  const sheet = ss.getSheetByName(REPORT_SHEET);
-  const gid = sheet.getSheetId();
+function formatReportText_(reportData, weekLabel) {
+  const nameWidth = Math.max(...reportData.map(r => r.report_name.length), 3);
 
-  // Calculate range to export (header + data, 4 columns)
-  const range = `A1:D${rowCount + 1}`;
+  let text = `📊 Отчёт за неделю ${weekLabel}\n\n`;
+  text += "<pre>\n";
 
-  const exportUrl = `https://docs.google.com/spreadsheets/d/${sheetId}/export?` +
-    `format=png&gid=${gid}&range=${range}`;
-
-  const response = UrlFetchApp.fetch(exportUrl, {
-    headers: { Authorization: "Bearer " + ScriptApp.getOAuthToken() },
-    muteHttpExceptions: true,
-  });
-
-  if (response.getResponseCode() !== 200) {
-    throw new Error("Failed to export PNG: " + response.getContentText());
+  for (const r of reportData) {
+    const name = r.report_name.padEnd(nameWidth);
+    const days = String(r.active_days).padStart(1);
+    const strikes = r.strikes > 0 ? " ⚠️" + r.strikes : "";
+    const trophies = r.trophies > 0 ? " " + "🏆".repeat(r.trophies) : "";
+    const expelled = r.status !== "active" ? " ❌" : "";
+    text += `${name} ${days}${strikes}${trophies}${expelled}\n`;
   }
 
-  return response.getBlob().setName("weekly_report.png");
+  text += "</pre>";
+  return text;
 }
 
 /**
- * Process weekly report: calculate stats, update sheets, optionally send to Telegram
+ * Generate weekly report: process activity, update sheets, build text report
  * @param {Date} [referenceDate] - optional date to determine which week to process
+ * @returns {{ reportText: string, weekLabel: string, activeCount: number, trophyCount: number } | null}
  */
-function sendWeeklyReport_(referenceDate) {
-  const weekLabel = getWeekLabel_(referenceDate);
-  const collectionOnly = isCollectionOnly_();
-
-  // Process activity (always - updates strikes, trophies, history)
-  const results = processWeeklyActivity_(referenceDate);
-
-  if (results.length === 0) {
-    logWarn_("weeklyReport", "No members to report", null, null, null);
-    return;
+function generateWeeklyReport_(referenceDate) {
+  // Lock to prevent concurrent execution (wait up to 30 seconds)
+  const lock = LockService.getScriptLock();
+  if (!lock.tryLock(30000)) {
+    throw new Error("Отчёт уже генерируется. Попробуйте позже.");
   }
 
-  // Build and write report to sheet (always - for manual review)
-  const reportData = buildReportData_(results);
-  const rowCount = writeReportToSheet_(reportData);
+  try {
+    const weekLabel = getWeekLabel_(referenceDate);
 
-  const activeCount = reportData.filter(r => r.status === "active").length;
-  const trophyCount = results.filter(r => r.weekly_status === "trophy").length;
+    // Process activity (always - updates strikes, trophies, history)
+    const results = processWeeklyActivity_(referenceDate);
 
-  // Skip Telegram notification in collection-only mode
-  if (collectionOnly) {
-    logInfo_("weeklyReport", "Processed (COLLECTION_ONLY - no Telegram)", null, null, {
+    if (results.length === 0) {
+      logWarn_("weeklyReport", "No members to report", null, null, null);
+      return null;
+    }
+
+    // Build and write report to sheet (for manual review)
+    const reportData = buildReportData_(results);
+    writeReportToSheet_(reportData);
+
+    const activeCount = reportData.filter(r => r.status === "active").length;
+    const trophyCount = results.filter(r => r.weekly_status === "trophy").length;
+
+    // Build text report
+    const reportText = formatReportText_(reportData, weekLabel);
+
+    logInfo_("weeklyReport", "Report generated", null, null, {
       week: weekLabel,
       totalMembers: reportData.length,
       activeCount: activeCount,
       trophies: trophyCount,
     });
+
+    return { reportText, weekLabel, activeCount, trophyCount };
+  } finally {
+    lock.releaseLock();
+  }
+}
+
+/**
+ * Process weekly report and send to Объявления (for trigger/manual GAS run)
+ * @param {Date} [referenceDate] - optional date to determine which week to process
+ */
+function sendWeeklyReport_(referenceDate) {
+  const collectionOnly = isCollectionOnly_();
+
+  const report = generateWeeklyReport_(referenceDate);
+  if (!report) return;
+
+  // Skip Telegram notification in collection-only mode
+  if (collectionOnly) {
+    logInfo_("weeklyReport", "Processed (COLLECTION_ONLY - no Telegram)", null, null, {
+      week: report.weekLabel,
+      activeCount: report.activeCount,
+      trophies: report.trophyCount,
+    });
     return;
   }
-
-  // Export as PNG and send to Telegram
-  const pngBlob = exportReportAsPng_(rowCount);
 
   const chatId = getGroupChatId_();
   const threadId = getReportThreadId_();
 
-  let caption = `📊 Отчёт за неделю ${weekLabel}\n\nАктивных: ${activeCount}`;
-  if (trophyCount > 0) {
-    caption += `\n🏆 Трофеев на этой неделе: ${trophyCount}`;
-  }
+  sendMessage_(chatId, report.reportText, threadId);
 
-  sendPhoto_(chatId, pngBlob, caption, threadId);
-
-  logInfo_("weeklyReport", "Report sent", null, null, {
-    week: weekLabel,
-    totalMembers: reportData.length,
-    trophies: trophyCount,
+  logInfo_("weeklyReport", "Report sent to announcements", null, null, {
+    week: report.weekLabel,
+    trophies: report.trophyCount,
   });
 }
 

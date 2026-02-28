@@ -13,6 +13,13 @@ function processUpdate_(update) {
     return;
   }
 
+  // Handle bot commands before thread filter (commands work from any chat/topic)
+  const text = message.text || "";
+  if (text.startsWith("/")) {
+    handleCommand_(message);
+    return;
+  }
+
   // Check if it's from the target thread
   const targetThreadId = getTargetThreadId_();
   const messageThreadId = message.message_thread_id;

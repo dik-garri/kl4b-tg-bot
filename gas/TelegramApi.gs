@@ -76,6 +76,16 @@ function sendMessage_(chatId, text, threadId) {
 }
 
 /**
+ * Send a plain text message (no HTML parsing — safe for error messages)
+ */
+function sendPlainMessage_(chatId, text) {
+  return callTelegramApi_("sendMessage", {
+    chat_id: chatId,
+    text: text,
+  });
+}
+
+/**
  * Send a photo with caption
  */
 function sendPhoto_(chatId, photoBlob, caption, threadId) {
