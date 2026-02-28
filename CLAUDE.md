@@ -29,8 +29,8 @@ kl4b/
 │   ├── Members.gs          # Member CRUD
 │   ├── Messages.gs         # Message storage, week calculations
 │   ├── Webhook.gs          # Process incoming messages
-│   ├── WeeklyReport.gs     # Weekly processing, PNG generation
-│   ├── Commands.gs          # Bot command handlers (/report)
+│   ├── WeeklyReport.gs     # Weekly processing, CSV report generation
+│   ├── Commands.gs         # Bot command handlers (/report, /getlastreport, /help)
 │   └── appsscript.json     # GAS manifest
 ├── docs/plans/             # Design documents
 ├── README.md               # Пользовательская документация
@@ -47,7 +47,7 @@ kl4b/
 1. **Webhook** получает сообщения из топика "Мысли по прочитанному"
 2. Сохраняет в Google Sheets (messages, members)
 3. **Weekly trigger** (воскресенье 21:00) обрабатывает активность
-4. Генерирует PNG-отчёт и постит в топик "Объявления"
+4. Генерирует CSV-отчёт и постит в топик "Объявления"
 
 ### Key Files
 
@@ -56,7 +56,7 @@ kl4b/
 | Code.gs | `doPost()`, `doGet()`, `setupSheets()`, `testConfig()`, `integrationTest()` |
 | WeeklyReport.gs | `runWeeklyReport()` — entry point for weekly trigger |
 | Webhook.gs | `processUpdate_()` — processes incoming Telegram messages |
-| Commands.gs | `handleCommand_()` — routes bot commands, `handleReportCommand_()` |
+| Commands.gs | `handleCommand_()` — routes bot commands (`/report`, `/getlastreport`, `/help`) |
 
 ### Google Sheets Structure
 
@@ -108,14 +108,18 @@ See main `README.md` for full setup instructions.
 ### Роли и команды
 - Колонка `role` в members: `admin` или `member` (по умолчанию)
 - Команды бота обрабатываются из любого топика/чата
-- `/report [2026-W08]` — только для админов, генерирует отчёт и шлёт PNG в личку
+- `/start`, `/help` — список команд (админам показываются все)
+- `/report [2026-W08]` — только для админов, генерирует отчёт (CSV + ссылка на Google Sheet) и шлёт в личку
+- `/getlastreport` — только для админов, отправляет последний готовый отчёт без пересчёта
 - Бот **не пишет** в групповые чаты в ответ на команды
+- Дедупликация webhook-ретраев через `CacheService` (120 сек)
+- Идемпотентность: повторный запуск для уже обработанной недели заблокирован
 
 ### COLLECTION_ONLY режим
 - При `COLLECTION_ONLY=true` бот работает полностью, но без отправки в Telegram
 - Все подсчёты ведутся: страйки, трофеи, история
 - Данные записываются в `report_template` для ручной проверки
-- Только отправка PNG в Telegram отключена
+- Только отправка в Telegram отключена
 
 ## Legacy Notebook
 
