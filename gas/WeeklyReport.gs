@@ -185,7 +185,7 @@ function writeReportToSheet_(reportData) {
     r.report_name,
     r.active_days,
     r.strikes,
-    r.trophies > 0 ? "🏆".repeat(r.trophies) : "",
+    r.trophies,
   ]);
 
   if (rows.length > 0) {
@@ -213,9 +213,9 @@ function writeReportToSheet_(reportData) {
  * Build CSV blob from report data
  */
 function buildReportCsv_(reportData, weekLabel) {
-  const header = "Имя,Дни,Страйки,Трофеи,Статус";
+  const header = "Имя,Дни,Страйки,Трофеи";
   const rows = reportData.map(r =>
-    `${r.report_name},${r.active_days},${r.strikes},${r.trophies},${r.status}`
+    `${r.report_name},${r.active_days},${r.strikes},${r.trophies}`
   );
   const csv = [header, ...rows].join("\n");
   return Utilities.newBlob(csv, "text/csv", `report_${weekLabel}.csv`);
